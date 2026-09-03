@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Use environment variable for API URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
 const API = axios.create({
-  baseURL: 'http://localhost:5001/api',
+  baseURL: `${API_BASE_URL}/api`,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000
 });
@@ -58,10 +61,10 @@ export const getGameState = () => API.get('/game/state');
 // Place bet
 export const placeBet = (data) => API.post('/game/bet', data);
 
-// ✅ Create deposit request (with screenshot)
+// Create deposit request (with screenshot)
 export const createDepositRequest = (data) => API.post('/game/deposit/request', data);
 
-// ✅ Create withdraw request
+// Create withdraw request
 export const createWithdrawRequest = (data) => API.post('/game/withdraw/request', data);
 
 // Get user bet history
