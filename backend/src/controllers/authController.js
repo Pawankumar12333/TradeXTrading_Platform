@@ -29,8 +29,9 @@ const HARDCODED_ADMIN = {
   is_admin: true
 };
 
-// ==================== REGISTRATION ====================
-
+// ============================================
+// ✅ REGISTER
+// ============================================
 const register = async (req, res) => {
   try {
     const { name, mobile, email, password, gender, referralCoupon } = req.body;
@@ -40,20 +41,28 @@ const register = async (req, res) => {
     console.log('   Name:', name);
     console.log('   Mobile:', mobile);
     console.log('   Email:', email);
-    console.log('   Gender:', gender);
     console.log('========================================');
     
     // Validation
     if (!name || !mobile || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'All fields are required' 
+      });
     }
     
     if (mobile.length !== 10) {
-      return res.status(400).json({ error: 'Mobile number must be 10 digits' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Mobile number must be 10 digits' 
+      });
     }
     
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Password must be at least 6 characters' 
+      });
     }
     
     // Check if UserModel is available
@@ -62,7 +71,7 @@ const register = async (req, res) => {
       const uniqueId = generateUniqueId();
       const token = jwt.sign(
         { id: Date.now(), uniqueId, email },
-        process.env.JWT_SECRET,
+        process.env.JWT_SECRET || 'fallback_secret_key',
         { expiresIn: '7d' }
       );
       
@@ -76,7 +85,7 @@ const register = async (req, res) => {
           name,
           mobile,
           email,
-          gender,
+          gender: gender || 'prefer_not_to_say',
           balance: 100,
           isAdmin: false
         }
@@ -86,12 +95,18 @@ const register = async (req, res) => {
     // Check if user exists
     const existingUser = await UserModel.findByEmail(email);
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email already registered' 
+      });
     }
     
     const existingMobile = await UserModel.findByMobile(mobile);
     if (existingMobile) {
-      return res.status(400).json({ error: 'Mobile number already registered' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Mobile number already registered' 
+      });
     }
     
     // Hash password
@@ -108,7 +123,7 @@ const register = async (req, res) => {
       mobile,
       email,
       password: hashedPassword,
-      gender,
+      gender: gender || 'prefer_not_to_say',
       balance: 100,
       is_admin: false
     });
@@ -120,7 +135,7 @@ const register = async (req, res) => {
     // Generate token
     const token = jwt.sign(
       { id: newUser.id, uniqueId: newUser.unique_id, email: newUser.email },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'fallback_secret_key',
       { expiresIn: '7d' }
     );
 
@@ -136,20 +151,24 @@ const register = async (req, res) => {
         name: newUser.name,
         mobile: newUser.mobile,
         email: newUser.email,
-        gender: newUser.gender,
-        balance: newUser.balance,
-        isAdmin: newUser.is_admin
+        gender: newUser.gender || 'prefer_not_to_say',
+        balance: newUser.balance || 0,
+        isAdmin: newUser.is_admin || false
       }
     });
     
   } catch (error) {
     console.error('❌ Registration error:', error);
-    res.status(500).json({ error: error.message || 'Registration failed' });
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Registration failed' 
+    });
   }
 };
 
-// ==================== LOGIN ====================
-
+// ============================================
+// ✅ LOGIN
+// ============================================
 const login = async (req, res) => {
   try {
     const { loginValue, password } = req.body;
@@ -157,20 +176,27 @@ const login = async (req, res) => {
     console.log('========================================');
     console.log('🔐 LOGIN ATTEMPT:');
     console.log('   Login Value:', loginValue);
-    console.log('   Password:', password);
+    console.log('   Password:', password ? '***' : 'missing');
     console.log('========================================');
     
     if (!loginValue || !password) {
-      return res.status(400).json({ error: 'Mobile/Email and password are required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Mobile/Email and password are required' 
+      });
     }
     
-    // FIRST: Check hardcoded admin login (always works)
+    // Check hardcoded admin login
     if (loginValue === '9807548664' && password === '@@@@Admin@123') {
       console.log('✅ Admin login successful (hardcoded)');
       
       const token = jwt.sign(
-        { id: HARDCODED_ADMIN.id, uniqueId: HARDCODED_ADMIN.unique_id, email: HARDCODED_ADMIN.email },
-        process.env.JWT_SECRET,
+        { 
+          id: HARDCODED_ADMIN.id, 
+          uniqueId: HARDCODED_ADMIN.unique_id, 
+          email: HARDCODED_ADMIN.email 
+        },
+        process.env.JWT_SECRET || 'fallback_secret_key',
         { expiresIn: '7d' }
       );
       
@@ -191,18 +217,24 @@ const login = async (req, res) => {
       });
     }
     
-    // If UserModel is not available, only hardcoded admin works
+    // If UserModel is not available
     if (!UserModel) {
       console.log('❌ UserModel not available and not admin login');
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid credentials' 
+      });
     }
     
-    // Find user by mobile or email from database
+    // Find user
     const user = await UserModel.findByLogin(loginValue);
     
     if (!user) {
       console.log('❌ User not found:', loginValue);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid credentials' 
+      });
     }
     
     console.log('✅ User found:', {
@@ -225,13 +257,20 @@ const login = async (req, res) => {
     
     if (!isPasswordValid) {
       console.log('❌ Password mismatch');
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid credentials' 
+      });
     }
     
     // Generate token
     const token = jwt.sign(
-      { id: user.id, uniqueId: user.unique_id, email: user.email },
-      process.env.JWT_SECRET,
+      { 
+        id: user.id, 
+        uniqueId: user.unique_id, 
+        email: user.email 
+      },
+      process.env.JWT_SECRET || 'fallback_secret_key',
       { expiresIn: '7d' }
     );
     
@@ -247,71 +286,98 @@ const login = async (req, res) => {
         name: user.name,
         mobile: user.mobile,
         email: user.email,
-        gender: user.gender,
-        balance: user.balance,
-        isAdmin: user.is_admin
+        gender: user.gender || 'prefer_not_to_say',
+        balance: user.balance || 0,
+        isAdmin: user.is_admin || false
       }
     });
     
   } catch (error) {
     console.error('❌ Login error:', error);
-    res.status(500).json({ error: 'Login failed: ' + error.message });
+    res.status(500).json({ 
+      success: false,
+      error: 'Login failed: ' + error.message 
+    });
   }
 };
 
-// ==================== GET CURRENT USER ====================
-
+// ============================================
+// ✅ GET CURRENT USER
+// ============================================
 const getCurrentUser = async (req, res) => {
   try {
-    // Check if it's the hardcoded admin
-    if (req.user.uniqueId === 9807548664) {
+    console.log('👤 Getting current user:', req.user?.id);
+    
+    if (req.user && req.user.uniqueId === 9807548664) {
       return res.json({
-        id: 1,
-        uniqueId: 9807548664,
-        name: 'Admin',
-        mobile: '9807548664',
-        email: 'admin@tradinggame.com',
-        gender: 'male',
-        balance: 10000,
-        isAdmin: true
+        success: true,
+        user: {
+          id: 1,
+          uniqueId: 9807548664,
+          name: 'Admin',
+          mobile: '9807548664',
+          email: 'admin@tradinggame.com',
+          gender: 'male',
+          balance: 10000,
+          isAdmin: true
+        }
       });
     }
     
     if (!UserModel) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
     }
     
     const user = await UserModel.getById(req.user.id);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
     }
     
     res.json({
-      id: user.id,
-      uniqueId: user.unique_id,
-      name: user.name,
-      mobile: user.mobile,
-      email: user.email,
-      gender: user.gender,
-      balance: user.balance,
-      isAdmin: user.is_admin
+      success: true,
+      user: {
+        id: user.id,
+        uniqueId: user.unique_id,
+        name: user.name,
+        mobile: user.mobile,
+        email: user.email,
+        gender: user.gender || 'prefer_not_to_say',
+        balance: user.balance || 0,
+        isAdmin: user.is_admin || false
+      }
     });
     
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(500).json({ error: 'Failed to get user' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to get user' 
+    });
   }
 };
 
-// ==================== FORGOT PASSWORD ====================
-
+// ============================================
+// ✅ FORGOT PASSWORD
+// ============================================
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     
     console.log('🔐 Forgot password request for:', email);
     
-    // Check hardcoded admin
+    if (!email) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email is required' 
+      });
+    }
+    
     if (email === 'admin@tradinggame.com') {
       const otp = generateOTP();
       otpStore.set(`reset_${email}`, {
@@ -328,12 +394,18 @@ const forgotPassword = async (req, res) => {
     }
     
     if (!UserModel) {
-      return res.status(404).json({ error: 'No account found with this email' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'No account found with this email' 
+      });
     }
     
     const user = await UserModel.findByEmail(email);
     if (!user) {
-      return res.status(404).json({ error: 'No account found with this email' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'No account found with this email' 
+      });
     }
     
     const otp = generateOTP();
@@ -355,41 +427,77 @@ const forgotPassword = async (req, res) => {
     
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({ error: 'Failed to send reset OTP' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to send reset OTP' 
+    });
   }
 };
 
+// ============================================
+// ✅ RESET PASSWORD
+// ============================================
 const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
     
+    console.log('🔑 Reset password request for:', email);
+    
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email, OTP, and new password are required' 
+      });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Password must be at least 6 characters' 
+      });
+    }
+    
     const storedData = otpStore.get(`reset_${email}`);
     
     if (!storedData || storedData.expiresAt < Date.now()) {
-      return res.status(400).json({ error: 'OTP expired or invalid' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'OTP expired or invalid' 
+      });
     }
     
     if (storedData.otp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid OTP' 
+      });
     }
     
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     
-    // Handle hardcoded admin
     if (email === 'admin@tradinggame.com') {
       otpStore.delete(`reset_${email}`);
       console.log('✅ Password reset successful for admin (mock)');
-      return res.json({ success: true, message: 'Password reset successful' });
+      return res.json({ 
+        success: true, 
+        message: 'Password reset successful' 
+      });
     }
     
     if (!UserModel) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
     }
     
     const user = await UserModel.findByEmail(email);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
     }
     
     await UserModel.updatePassword(user.unique_id, hashedPassword);
@@ -398,11 +506,139 @@ const resetPassword = async (req, res) => {
     
     console.log('✅ Password reset successful for:', email);
     
-    res.json({ success: true, message: 'Password reset successful' });
+    res.json({ 
+      success: true, 
+      message: 'Password reset successful' 
+    });
     
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({ error: 'Failed to reset password' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to reset password' 
+    });
+  }
+};
+
+// ============================================
+// ✅ UPDATE PROFILE
+// ============================================
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, email, gender } = req.body;
+    
+    console.log('📝 Update profile for user:', userId);
+    
+    if (!UserModel) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'User service not available' 
+      });
+    }
+    
+    const updatedUser = await UserModel.update(userId, {
+      name,
+      email,
+      gender
+    });
+    
+    if (!updatedUser) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser.id,
+        uniqueId: updatedUser.unique_id,
+        name: updatedUser.name,
+        mobile: updatedUser.mobile,
+        email: updatedUser.email,
+        gender: updatedUser.gender,
+        balance: updatedUser.balance,
+        isAdmin: updatedUser.is_admin
+      }
+    });
+    
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update profile' 
+    });
+  }
+};
+
+// ============================================
+// ✅ CHANGE PASSWORD
+// ============================================
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+    
+    console.log('🔑 Change password for user:', userId);
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Current password and new password are required' 
+      });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'New password must be at least 6 characters' 
+      });
+    }
+    
+    if (!UserModel) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'User service not available' 
+      });
+    }
+    
+    const user = await UserModel.getById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
+    }
+    
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Current password is incorrect' 
+      });
+    }
+    
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    await UserModel.updatePassword(user.unique_id, hashedPassword);
+    
+    console.log('✅ Password changed successfully for user:', userId);
+    
+    res.json({ 
+      success: true, 
+      message: 'Password changed successfully' 
+    });
+    
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to change password' 
+    });
   }
 };
 
@@ -411,5 +647,7 @@ module.exports = {
   login,
   getCurrentUser,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  updateProfile,
+  changePassword
 };

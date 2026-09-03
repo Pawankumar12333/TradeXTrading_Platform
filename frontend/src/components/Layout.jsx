@@ -1,66 +1,63 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 
 export default function Layout() {
-  const navigate = useNavigate()
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const [user, setUser] = useState(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const ADMIN_MOBILE = '9807548664'
+  const ADMIN_MOBILE = '9807548664';
 
-  // Memoize checkAuth to prevent unnecessary re-renders
   const checkAuth = useCallback(() => {
     try {
-      const currentUserStr = localStorage.getItem('currentUser')
+      const token = localStorage.getItem('token');
+      const currentUserStr = localStorage.getItem('currentUser');
       
-      if (!currentUserStr) {
-        navigate('/login', { replace: true })
-        return
+      if (!token || !currentUserStr) {
+        navigate('/login', { replace: true });
+        return;
       }
       
-      const currentUser = JSON.parse(currentUserStr)
-      setUser(currentUser)
-      setIsAdmin(currentUser.mobile === ADMIN_MOBILE)
-      setIsLoading(false)
+      const currentUser = JSON.parse(currentUserStr);
+      setUser(currentUser);
+      setIsAdmin(currentUser.isAdmin || currentUser.mobile === ADMIN_MOBILE);
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error parsing user data:', error)
-      localStorage.removeItem('currentUser')
-      localStorage.removeItem('token')
-      navigate('/login', { replace: true })
+      console.error('Error parsing user data:', error);
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('token');
+      navigate('/login', { replace: true });
     }
-  }, [navigate])
+  }, [navigate]);
 
   useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
+    checkAuth();
+  }, [checkAuth]);
 
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('currentUser')
-    localStorage.removeItem('token')
-    navigate('/login', { replace: true })
-  }, [navigate])
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
+    navigate('/login', { replace: true });
+  }, [navigate]);
 
-  // Prevent rendering while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         <div className="text-white text-xl ml-3">Loading...</div>
       </div>
-    )
+    );
   }
 
-  if (!user) {
-    return null
-  }
+  if (!user) return null;
 
   return (
     <div className="flex min-h-screen bg-page">
       {/* Sidebar */}
       <div className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-black/70 backdrop-blur-md text-white transition-all duration-300 flex flex-col fixed h-full z-50 border-r border-white/10`}>
-        <button 
+        <button
           onClick={() => setIsSidebarOpen(prev => !prev)}
           className="p-4 hover:bg-white/10 text-left transition"
           aria-label="Toggle Sidebar"
@@ -81,7 +78,14 @@ export default function Layout() {
             <span className="text-xl">🏆</span>
             {isSidebarOpen && <span className="ml-3">Leaderboard</span>}
           </Link>
-          
+          <Link to="/deposit" className="flex items-center p-4 hover:bg-white/10 transition">
+            <span className="text-xl">💰</span>
+            {isSidebarOpen && <span className="ml-3">Deposit</span>}
+          </Link>
+          <Link to="/withdraw" className="flex items-center p-4 hover:bg-white/10 transition">
+            <span className="text-xl">💳</span>
+            {isSidebarOpen && <span className="ml-3">Withdraw</span>}
+          </Link>
           {isAdmin && (
             <Link to="/admin" className="flex items-center p-4 hover:bg-white/10 transition">
               <span className="text-xl">⚙️</span>
@@ -94,13 +98,12 @@ export default function Layout() {
           <Link to="/account" className="flex items-center p-4 hover:bg-white/10 transition">
             <span className="text-xl">👤</span>
             {isSidebarOpen && (
-              <div className="ml-3">
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-sm text-gray-300">Balance: ₹{user.balance}</p>
+              <div className="ml-3 overflow-hidden">
+                <p className="font-semibold text-sm truncate">{user.name}</p>
+                <p className="text-sm text-gray-300">Balance: ₹{user.balance || 0}</p>
               </div>
             )}
           </Link>
-          
           <button
             onClick={handleLogout}
             className="w-full flex items-center p-4 hover:bg-red-600/50 transition text-left"
@@ -116,5 +119,5 @@ export default function Layout() {
         <Outlet />
       </div>
     </div>
-  )
+  );
 }

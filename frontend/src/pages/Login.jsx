@@ -1,147 +1,144 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import API, { login, forgotPassword, resetPassword } from '../services/api'
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import API, { login, forgotPassword, resetPassword } from '../services/api';
 
 export default function Login() {
-  const navigate = useNavigate()
-  const [isLogin, setIsLogin] = useState(true)
-  const [showPassword, setShowPassword] = useState(false)
-  const [step, setStep] = useState('login')
+  const navigate = useNavigate();
+  const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState('login');
   const [formData, setFormData] = useState({
     mobile: '',
     email: '',
     password: '',
     name: '',
     gender: 'male'
-  })
-  const [otp, setOtp] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [resendTimer, setResendTimer] = useState(0)
-  const [resetEmail, setResetEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-  
-  const [referralCoupon, setReferralCoupon] = useState('')
-  const [couponValid, setCouponValid] = useState(null)
-  const [couponMessage, setCouponMessage] = useState('')
+  });
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  const [resetEmail, setResetEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [referralCoupon, setReferralCoupon] = useState('');
+  const [couponValid, setCouponValid] = useState(null);
+  const [couponMessage, setCouponMessage] = useState('');
 
+  // Check auth on mount
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      navigate('/')
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('currentUser');
+    if (token && user) {
+      navigate('/');
     }
-  }, [navigate])
+  }, [navigate]);
 
   const hasSpecialChar = (str) => {
     const specialChars = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
     return specialChars.test(str);
-  }
+  };
 
-  // ==================== FORGOT PASSWORD FUNCTIONS ====================
-  
+  // ==================== FORGOT PASSWORD ====================
   const sendResetOTP = async () => {
     if (!resetEmail) {
-      setError('Please enter your email address')
-      return
+      setError('Please enter your email address');
+      return;
     }
-    
-    setLoading(true)
+    setLoading(true);
+    setError('');
     try {
-      const response = await forgotPassword({ email: resetEmail })
+      const response = await forgotPassword({ email: resetEmail });
       if (response.data.success) {
-        setStep('reset')
-        setError('')
-        setResendTimer(60)
+        setStep('reset');
+        setError('');
+        setResendTimer(60);
         const timer = setInterval(() => {
           setResendTimer(prev => {
-            if (prev <= 1) clearInterval(timer)
-            return prev - 1
-          })
-        }, 1000)
+            if (prev <= 1) clearInterval(timer);
+            return prev - 1;
+          });
+        }, 1000);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send OTP')
+      setError(err.response?.data?.error || 'Failed to send OTP');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const verifyResetOTP = async () => {
     if (!otp) {
-      setError('Please enter OTP')
-      return
+      setError('Please enter OTP');
+      return;
     }
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
+      setError('Password must be at least 6 characters');
+      return;
     }
     if (!hasSpecialChar(newPassword)) {
-      setError('Password must contain at least one special character (!@#$%^&*)')
-      return
+      setError('Password must contain at least one special character (!@#$%^&*)');
+      return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match!')
-      return
+      setError('Passwords do not match!');
+      return;
     }
-    
-    setLoading(true)
+    setLoading(true);
     try {
       const response = await resetPassword({
         email: resetEmail,
         otp: otp,
         newPassword: newPassword
-      })
+      });
       if (response.data.success) {
-        setSuccess('Password reset successfully! Please login with new password.')
-        setStep('login')
-        setResetEmail('')
-        setOtp('')
-        setNewPassword('')
-        setConfirmPassword('')
-        setTimeout(() => setSuccess(''), 3000)
+        setSuccess('Password reset successfully! Please login with new password.');
+        setStep('login');
+        setResetEmail('');
+        setOtp('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to reset password')
+      setError(err.response?.data?.error || 'Failed to reset password');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  // ==================== REGISTRATION FUNCTIONS ====================
-  
+  // ==================== REGISTRATION ====================
   const handleRegister = async (e) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
     
-    // Validation
     if (!formData.name) {
-      setError('Please enter your name')
-      return
+      setError('Please enter your name');
+      return;
     }
     if (!formData.mobile || formData.mobile.length !== 10) {
-      setError('Enter valid 10 digit mobile number')
-      return
+      setError('Enter valid 10 digit mobile number');
+      return;
     }
     if (!formData.email) {
-      setError('Please enter email address')
-      return
+      setError('Please enter email address');
+      return;
     }
     if (!formData.password) {
-      setError('Please enter password')
-      return
+      setError('Please enter password');
+      return;
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
+      setError('Password must be at least 6 characters');
+      return;
     }
     if (!hasSpecialChar(formData.password)) {
-      setError('Password must contain at least one special character (!@#$%^&*)')
-      return
+      setError('Password must contain at least one special character (!@#$%^&*)');
+      return;
     }
     
-    setLoading(true)
+    setLoading(true);
     try {
       const response = await API.post('/auth/register', {
         name: formData.name,
@@ -150,71 +147,70 @@ export default function Login() {
         password: formData.password,
         gender: formData.gender,
         referralCoupon: referralCoupon || undefined
-      })
+      });
       
       if (response.data.success) {
-        localStorage.setItem('token', response.data.token)
-        localStorage.setItem('currentUser', JSON.stringify(response.data.user))
-        setSuccess('Registration successful! Redirecting...')
-        setTimeout(() => navigate('/'), 1500)
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('currentUser', JSON.stringify(response.data.user));
+        setSuccess('Registration successful! Redirecting...');
+        setTimeout(() => navigate('/'), 1500);
       }
     } catch (err) {
-      console.error('Registration error:', err)
-      setError(err.response?.data?.error || 'Registration failed. Please try again.')
+      console.error('Registration error:', err);
+      setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  // ==================== LOGIN FUNCTIONS ====================
-  
+  // ==================== LOGIN ====================
   const handleLogin = async (e) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
     
-    const loginValue = formData.mobile
+    const loginValue = formData.mobile;
     if (!loginValue || !formData.password) {
-      setError('Please enter mobile/email and password')
-      return
+      setError('Please enter mobile/email and password');
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const response = await login({
         loginValue: loginValue,
         password: formData.password
-      })
+      });
       
       if (response.data.success) {
-        localStorage.setItem('token', response.data.token)
-        localStorage.setItem('currentUser', JSON.stringify(response.data.user))
-        setSuccess('Login successful!')
-        setTimeout(() => navigate('/'), 1000)
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('currentUser', JSON.stringify(response.data.user));
+        setSuccess('Login successful!');
+        setTimeout(() => navigate('/'), 1000);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid credentials')
+      setError(err.response?.data?.error || 'Invalid credentials');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const checkCoupon = (code) => {
     if (!code) {
-      setCouponValid(null)
-      setCouponMessage('')
-      return
+      setCouponValid(null);
+      setCouponMessage('');
+      return;
     }
-    setCouponValid(true)
-    setCouponMessage(`✅ Valid coupon! You will get ₹10 bonus. Referrer gets ₹20.`)
-    setTimeout(() => setCouponMessage(''), 3000)
-  }
+    setCouponValid(true);
+    setCouponMessage(`✅ Valid coupon! You will get ₹10 bonus.`);
+    setTimeout(() => setCouponMessage(''), 3000);
+  };
 
   const resendOTP = () => {
-    if (resendTimer > 0) return
+    if (resendTimer > 0) return;
     if (step === 'reset') {
-      sendResetOTP()
+      sendResetOTP();
     }
-  }
+  };
 
   // ==================== REGISTER FORM ====================
   if (!isLogin && step === 'register') {
@@ -222,9 +218,7 @@ export default function Login() {
       <div className="min-h-screen bg-page flex items-center justify-center p-4">
         <div className="relative w-full max-w-md">
           <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 rounded-2xl blur-xl opacity-70 animate-pulse"></div>
-          
           <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/20">
-            
             <div className="text-center mb-4">
               <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-green-500 to-teal-600 flex items-center justify-center shadow-lg">
                 <span className="text-3xl">📝</span>
@@ -322,16 +316,12 @@ export default function Login() {
               <div className="mb-3">
                 <label className="block text-white/70 text-xs mb-1">Gender</label>
                 <div className="flex gap-3">
-                  <label className={`flex items-center gap-1.5 p-2 rounded-lg cursor-pointer flex-1 justify-center text-sm ${
-                    formData.gender === 'male' ? 'bg-blue-500/30 border border-blue-500/50' : 'bg-white/10'
-                  }`}>
+                  <label className={`flex items-center gap-1.5 p-2 rounded-lg cursor-pointer flex-1 justify-center text-sm ${formData.gender === 'male' ? 'bg-blue-500/30 border border-blue-500/50' : 'bg-white/10'}`}>
                     <input type="radio" name="gender" value="male" checked={formData.gender === 'male'} onChange={(e) => setFormData({...formData, gender: e.target.value})} className="hidden" />
                     <span className="text-lg">👨</span>
                     <span className="text-white text-xs">Male</span>
                   </label>
-                  <label className={`flex items-center gap-1.5 p-2 rounded-lg cursor-pointer flex-1 justify-center text-sm ${
-                    formData.gender === 'female' ? 'bg-pink-500/30 border border-pink-500/50' : 'bg-white/10'
-                  }`}>
+                  <label className={`flex items-center gap-1.5 p-2 rounded-lg cursor-pointer flex-1 justify-center text-sm ${formData.gender === 'female' ? 'bg-pink-500/30 border border-pink-500/50' : 'bg-white/10'}`}>
                     <input type="radio" name="gender" value="female" checked={formData.gender === 'female'} onChange={(e) => setFormData({...formData, gender: e.target.value})} className="hidden" />
                     <span className="text-lg">👩</span>
                     <span className="text-white text-xs">Female</span>
@@ -347,8 +337,8 @@ export default function Login() {
                     type="text"
                     value={referralCoupon}
                     onChange={(e) => {
-                      setReferralCoupon(e.target.value)
-                      checkCoupon(e.target.value)
+                      setReferralCoupon(e.target.value);
+                      checkCoupon(e.target.value);
                     }}
                     className="w-full p-2 pl-9 rounded-lg bg-white/10 text-white text-sm border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Enter coupon code"
@@ -369,7 +359,7 @@ export default function Login() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // ==================== FORGOT PASSWORD FORM ====================
@@ -378,9 +368,7 @@ export default function Login() {
       <div className="min-h-screen bg-page flex items-center justify-center p-4">
         <div className="relative w-full max-w-md">
           <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 rounded-2xl blur-xl opacity-70 animate-pulse"></div>
-          
           <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/20">
-            
             <div className="text-center mb-4">
               <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
                 <span className="text-3xl">🔐</span>
@@ -423,7 +411,7 @@ export default function Login() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // ==================== RESET PASSWORD FORM ====================
@@ -432,9 +420,7 @@ export default function Login() {
       <div className="min-h-screen bg-page flex items-center justify-center p-4">
         <div className="relative w-full max-w-md">
           <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 rounded-2xl blur-xl opacity-70 animate-pulse"></div>
-          
           <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/20">
-            
             <div className="text-center mb-4">
               <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-green-500 to-teal-600 flex items-center justify-center shadow-lg">
                 <span className="text-3xl">✉️</span>
@@ -520,7 +506,7 @@ export default function Login() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // ==================== MAIN LOGIN FORM ====================
@@ -528,9 +514,7 @@ export default function Login() {
     <div className="min-h-screen bg-page flex items-center justify-center p-4">
       <div className="relative w-full max-w-md">
         <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 rounded-2xl blur-xl opacity-70 animate-pulse"></div>
-        
         <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/20">
-          
           <div className="text-center mb-4">
             <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
               <span className="text-3xl">🔐</span>
@@ -540,19 +524,15 @@ export default function Login() {
           </div>
 
           <div className="flex gap-2 mb-4">
-            <button
-              className="flex-1 py-1.5 rounded-lg font-semibold text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
-            >
-              🔐 Login
-            </button>
+            <button className="flex-1 py-1.5 rounded-lg font-semibold text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">🔐 Login</button>
             <button
               type="button"
-              onClick={() => { 
-                setIsLogin(false); 
-                setStep('register'); 
-                setError(''); 
-                setSuccess(''); 
-                setFormData({...formData, name: '', mobile: '', email: '', password: ''})
+              onClick={() => {
+                setIsLogin(false);
+                setStep('register');
+                setError('');
+                setSuccess('');
+                setFormData({...formData, name: '', mobile: '', email: '', password: ''});
               }}
               className="flex-1 py-1.5 rounded-lg font-semibold text-sm bg-white/10 text-white/70 hover:text-white"
             >
@@ -604,7 +584,7 @@ export default function Login() {
             <div className="text-right mb-4">
               <button
                 type="button"
-                onClick={() => { setIsLogin(false); setStep('forgot'); setError(''); setResetEmail('') }}
+                onClick={() => { setIsLogin(false); setStep('forgot'); setError(''); setResetEmail(''); }}
                 className="text-white/40 hover:text-white text-[10px] transition"
               >
                 Forgot Password?
@@ -622,27 +602,27 @@ export default function Login() {
 
           <div className="mt-4 pt-3 border-t border-white/10">
             <p className="text-[10px] text-white/50 text-center">
-              🎁 New user? 
-              <button 
+              🎁 New user?
+              <button
                 type="button"
-                onClick={() => { 
-                  setIsLogin(false); 
-                  setStep('register'); 
-                  setError(''); 
-                  setSuccess(''); 
-                  setFormData({...formData, name: '', mobile: '', email: '', password: ''})
+                onClick={() => {
+                  setIsLogin(false);
+                  setStep('register');
+                  setError('');
+                  setSuccess('');
+                  setFormData({...formData, name: '', mobile: '', email: '', password: ''});
                 }}
                 className="font-semibold underline ml-1 text-blue-300 hover:text-blue-200 transition text-[10px]"
               >
                 Register here
-              </button> 
+              </button>
               to get ₹10 bonus!
             </p>
           </div>
-          <p>Note: Please always login your phone number </p>
-          <p>contact us : yashyashbhuj@gmail.com</p>
+          <p className="text-[10px] text-white/40 text-center mt-2">Note: Please always login your phone number</p>
+          <p className="text-[10px] text-white/40 text-center">Contact us: yashyashbhuj@gmail.com</p>
         </div>
       </div>
     </div>
-  )
+  );
 }
